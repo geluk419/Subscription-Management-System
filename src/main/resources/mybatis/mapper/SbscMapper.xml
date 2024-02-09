@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.SbscMapper">
+	<!-- 조회 -->
+    <select id="getSrvcInfo" parameterType="java.lang.String" resultType="com.example.demo.vo.SbscVO">
+        SELECT
+		    i.info_no,
+		    i.usgqty,
+		    i.expry_ymd,
+		    i.srvc_no,
+		    i.mbr_no,
+		    s.srvc_no,
+		    s.srvc_typ,
+		    s.use_nmpr,
+		    s.strg_cpcty,
+		    s.sbsc_pd,
+		    s.sbsc_chrge
+		FROM
+		         sbsc_info i
+		    INNER JOIN sbsc_srvc s ON s.srvc_no = i.srvc_no
+		    INNER JOIN mbr       m ON m.mbr_no = i.mbr_no
+		WHERE
+		    m.mbr_id = #{mbrId}
+    </select>
+    
+    <update id="extendExpryYmd" parameterType="java.lang.String">
+    UPDATE sbsc_info si
+	SET
+	    expry_ymd = add_months(si.expry_ymd, 1)
+	WHERE
+	    EXISTS (
+	        SELECT
+	            1
+	        FROM
+	                 mbr m
+	            INNER JOIN sbsc_info si2 ON m.mbr_no = si2.mbr_no
+	        WHERE
+	                m.mbr_id = #{mbrId}
+	            AND si.info_no = si2.info_no
+	    )
+    </update>
+    
+    <insert id="subscribeService" parameterType="com.example.demo.vo.SbscVO">
+    INSERT INTO sbsc_info (
+	    info_no,
+	    usgqty,
+	    expry_ymd,
+	    srvc_no,
+	    mbr_no
+	)
+	    SELECT
+	        nvl(MAX(si.info_no), 0) + 1,
+	        0,
+	        add_months(sysdate, 1),
+	        #{srvcNo},
+	        m.mbr_no
+	    FROM
+	             sbsc_info si
+	        JOIN mbr m ON m.mbr_id = #{mbrId}
+	    GROUP BY
+	        m.mbr_no
+    </insert>
+</mapper>
